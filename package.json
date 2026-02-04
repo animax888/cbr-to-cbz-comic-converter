@@ -1,0 +1,32 @@
+{
+  "name": "cbr-to-cbz-comic-converter",
+  "version": "04.02.2026:01",
+  "description": "",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "MIT",
+  "author": "animax888",
+  "scripts": {
+    "build:exe": "pkg index.js --targets node18-win-x64 --output dist/edad-app.exe",
+    "convert:comics": "node convert_comics.js",
+    "build:exe:comics": "pkg convert_comics.js --targets node18-win-x64 --output dist/convert-comics.exe && node scripts/copy-distribution.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "cli-progress": "^3.12.0",
+    "node-unrar-js": "^2.0.2",
+    "yazl": "^3.3.1"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": [
+      "tools/7z/7z.exe",
+      "tools/7z/7z.dll",
+      "tools/7z/License.txt",
+      "licenses/PROJECT_LICENSE.txt",
+      "licenses/THIRD_PARTY_NOTICES.txt"
+    ]
+  }
+}

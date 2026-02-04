@@ -1,0 +1,32 @@
+THIRD-PARTY NOTICES
+
+This project bundles or depends on the following third-party components. Keep these notices with any distribution.
+The project license is in PROJECT_LICENSE.txt.
+
+Credits:
+Program made by animax888.
+Repository: https://github.com/animax888/cbr-to-cbz-comic-converter
+
+-------------------------------------------------------------------------------
+7-Zip
+-------------------------------------------------------------------------------
+Copyright (C) 1999-2025 Igor Pavlov.
+
+License: GNU LGPL with an unRAR restriction, plus BSD 2-clause / BSD 3-clause for
+specific parts of 7z.dll. The official 7-Zip License.txt must be distributed
+with 7z.exe/7z.dll.
+
+Included file:
+- License.txt (7-Zip official license text)
+
+-------------------------------------------------------------------------------
+Node.js Packages (runtime dependencies)
+-------------------------------------------------------------------------------
+- adm-zip
+- cli-progress
+- node-unrar-js
+- yazl
+
+These packages are distributed under their own licenses. Review each package's
+license in its repository or npm page and include any required notices.
+
