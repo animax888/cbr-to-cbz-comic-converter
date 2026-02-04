@@ -5,6 +5,11 @@
 **RtZ Comic Converter** is a Windows console tool that transforms comic archives into clean, **uncompressed** `.cbz` files. Built for collectors who want speed, structure, and a simple workflow. Compatible with `.cbr`, `.cb7`, and `.cbt`.
 It works without requiring any dependencies, as it includes the 7z binaries, so you only need to run the .exe.
 
+## Installation
+The latest version can be downloaded from the Releases page and is marked as `Latest`:
+`https://github.com/animax888/cbr-to-cbz-comic-converter/releases`
+The program comes in a ZIP file. Just extract it and run the `.exe`.
+
 ## Quick Start
 1. Run `rtz-comic-converter.exe`.
 2. The input folder already exists next to the exe: `CBR HERE`.
