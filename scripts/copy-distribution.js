@@ -7,6 +7,7 @@ const dist7z = path.join(dist, '7z');
 const licensesDir = path.join(root, 'licenses');
 const distLicenses = path.join(dist, 'licenses');
 const toolsDir = path.join(root, 'tools', '7z');
+const distCbr = path.join(dist, 'CBR HERE');
 
 const filesToCopy = [
   { src: path.join(toolsDir, '7z.exe'), dest: path.join(dist7z, '7z.exe') },
@@ -19,6 +20,7 @@ const filesToCopy = [
 fs.mkdirSync(dist, { recursive: true });
 fs.mkdirSync(dist7z, { recursive: true });
 fs.mkdirSync(distLicenses, { recursive: true });
+fs.mkdirSync(distCbr, { recursive: true });
 
 for (const file of filesToCopy) {
   if (fs.existsSync(file.src)) {

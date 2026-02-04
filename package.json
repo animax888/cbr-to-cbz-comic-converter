@@ -1,6 +1,6 @@
 {
   "name": "cbr-to-cbz-comic-converter",
-  "version": "04.02.2026:01",
+  "version": "04.02.2026:02",
   "description": "",
   "main": "index.js",
   "type": "commonjs",
@@ -18,7 +18,8 @@
     "yazl": "^3.3.1"
   },
   "devDependencies": {
-    "pkg": "^5.8.1"
+    "pkg": "^5.8.1",
+    "rcedit": "^5.0.2"
   },
   "pkg": {
     "assets": [

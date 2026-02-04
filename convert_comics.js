@@ -8,7 +8,6 @@ const { createExtractorFromFile } = require('node-unrar-js');
 const yazl = require('yazl');
 const cliProgress = require('cli-progress');
 
-const LOG_FILE = 'conversion.log';
 const SEVEN_ZIP_ENV = 'SEVEN_ZIP_PATH';
 let SEVEN_ZIP_PATH = null;
 
@@ -69,11 +68,6 @@ function logLine(level, message) {
   const timestamp = new Date().toISOString();
   const line = `${timestamp} - ${level.toUpperCase()} - ${message}`;
   console.log(line);
-  try {
-    fs.appendFileSync(LOG_FILE, line + '\n', { encoding: 'utf8' });
-  } catch (err) {
-    console.error('Failed to write log file:', err.message);
-  }
 }
 
 function pauseOnExit() {
@@ -284,7 +278,17 @@ async function convertToCbz(srcFile, destFile, failedPath) {
   try {
     await fsp.mkdir(tempDir, { recursive: true });
     const ext = path.extname(srcFile).toLowerCase();
-    if (ext === '.cbr') {
+    if (ext === '.cbz') {
+      try {
+        await safeExtractZip(srcFile, tempDir);
+      } catch (err) {
+        logLine('error', `Error extracting ZIP ${srcFile}: ${err.message}`);
+        await fsp.mkdir(path.dirname(failedPath), { recursive: true });
+        await fsp.copyFile(srcFile, failedPath);
+        counter.increment('failed');
+        return false;
+      }
+    } else {
       try {
         await safeExtractRar(srcFile, tempDir);
       } catch (err) {
@@ -302,16 +306,6 @@ async function convertToCbz(srcFile, destFile, failedPath) {
           counter.increment('failed');
           return false;
         }
-      }
-    } else {
-      try {
-        await safeExtractZip(srcFile, tempDir);
-      } catch (err) {
-        logLine('error', `Error extracting ZIP ${srcFile}: ${err.message}`);
-        await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-        await fsp.copyFile(srcFile, failedPath);
-        counter.increment('failed');
-        return false;
       }
     }
 
@@ -352,15 +346,6 @@ async function processFile(srcFile, destFile, failedPath) {
       counter.increment('failed');
       return false;
     }
-  } else if (ext === '.cbr') {
-    if (!await isValidRar(srcFile)) {
-      if (!isValidZip(srcFile)) {
-        await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-        await fsp.copyFile(srcFile, failedPath);
-        counter.increment('failed');
-        return false;
-      }
-    }
   }
 
   return convertToCbz(srcFile, destFile, failedPath);
@@ -377,15 +362,12 @@ async function collectFiles(inputDir, outputDir) {
       if (entry.isDirectory()) {
         await walk(fullPath);
       } else {
-        const ext = path.extname(entry.name).toLowerCase();
-        if (ext === '.cbz' || ext === '.cbr') {
-          const relPath = path.relative(inputDir, fullPath);
-          const destPath = path.join(outputDir, path.dirname(relPath));
-          const failedPath = path.join(failedDir, relPath);
-          const destFile = path.join(destPath, `${path.parse(entry.name).name}.cbz`);
-          await fsp.mkdir(destPath, { recursive: true });
-          files.push({ srcFile: fullPath, destFile, failedPath });
-        }
+        const relPath = path.relative(inputDir, fullPath);
+        const destPath = path.join(outputDir, path.dirname(relPath));
+        const failedPath = path.join(failedDir, relPath);
+        const destFile = path.join(destPath, `${path.parse(entry.name).name}.cbz`);
+        await fsp.mkdir(destPath, { recursive: true });
+        files.push({ srcFile: fullPath, destFile, failedPath });
       }
     }
   }
@@ -456,10 +438,15 @@ async function main() {
 
   if (isPackaged()) {
     const baseDir = getBaseDir();
-    const cbrDir = path.join(baseDir, 'CBR');
-    const cbzDir = path.join(baseDir, 'CBZ');
-    await fsp.mkdir(cbrDir, { recursive: true });
-    await fsp.mkdir(cbzDir, { recursive: true });
+    const cbrDir = path.join(baseDir, 'CBR HERE');
+    const cbzDir = path.join(baseDir, 'CBZ OUTPUT');
+
+    if (!fs.existsSync(cbrDir)) {
+      console.log('Missing input folder.');
+      console.log(`Please create this folder next to the exe: ${cbrDir}`);
+      await pauseOnExit();
+      return;
+    }
 
     console.log('=== CBR -> CBZ Converter ===');
     console.log(`1) Put your .cbr files here: ${cbrDir}`);
@@ -481,6 +468,8 @@ async function main() {
       await pauseOnExit();
       return;
     }
+
+    await fsp.mkdir(cbzDir, { recursive: true });
 
     inputDir = cbrDir;
     outputDir = cbzDir;
