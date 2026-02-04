@@ -5,6 +5,7 @@ const os = require('os');
 const { spawn, spawnSync } = require('child_process');
 const AdmZip = require('adm-zip');
 const { createExtractorFromFile } = require('node-unrar-js');
+const tar = require('tar');
 const yazl = require('yazl');
 const cliProgress = require('cli-progress');
 
@@ -242,6 +243,21 @@ async function safeExtractRar(rarPath, tempDir) {
   }
 }
 
+async function safeExtractTar(tarPath, tempDir) {
+  await tar.x({ file: tarPath, cwd: tempDir, strip: 0 });
+}
+
+async function tryExtractWithSevenZip(filePath, tempDir) {
+  if (!SEVEN_ZIP_PATH) return false;
+  try {
+    await runSevenZip(['x', '-y', `-o${tempDir}`, filePath]);
+    return true;
+  } catch (err) {
+    logLine('error', `Error extracting with 7-Zip ${filePath}: ${err.message}`);
+    return false;
+  }
+}
+
 async function createUncompressedZipFromDir(sourceDir, destFile) {
   await fsp.mkdir(path.dirname(destFile), { recursive: true });
   const zipfile = new yazl.ZipFile();
@@ -289,22 +305,31 @@ async function convertToCbz(srcFile, destFile, failedPath) {
         return false;
       }
     } else {
-      try {
-        await safeExtractRar(srcFile, tempDir);
-      } catch (err) {
-        logLine('error', `Error extracting RAR ${srcFile}: ${err.message}`);
+      if (await tryExtractWithSevenZip(srcFile, tempDir)) {
+        // Extracted by 7-Zip (supports .7z and many formats)
+      } else {
         try {
-          if (isValidZip(srcFile)) {
-            await safeExtractZip(srcFile, tempDir);
-          } else {
-            throw new Error('Not a valid ZIP file either');
+          await safeExtractRar(srcFile, tempDir);
+        } catch (err) {
+          logLine('error', `Error extracting RAR ${srcFile}: ${err.message}`);
+          try {
+            if (isValidZip(srcFile)) {
+              await safeExtractZip(srcFile, tempDir);
+            } else {
+              throw new Error('Not a valid ZIP file either');
+            }
+          } catch (zipErr) {
+            logLine('error', `Failed to process as ZIP: ${zipErr.message}`);
+            try {
+              await safeExtractTar(srcFile, tempDir);
+            } catch (tarErr) {
+              logLine('error', `Failed to process as TAR: ${tarErr.message}`);
+              await fsp.mkdir(path.dirname(failedPath), { recursive: true });
+              await fsp.copyFile(srcFile, failedPath);
+              counter.increment('failed');
+              return false;
+            }
           }
-        } catch (zipErr) {
-          logLine('error', `Failed to process as ZIP: ${zipErr.message}`);
-          await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-          await fsp.copyFile(srcFile, failedPath);
-          counter.increment('failed');
-          return false;
         }
       }
     }
@@ -449,9 +474,10 @@ async function main() {
     }
 
     console.log('=== CBR -> CBZ Converter ===');
-    console.log(`1) Put your .cbr files here: ${cbrDir}`);
+    console.log(`1) Put the files you want to convert here (any format): ${cbrDir}`);
     console.log(`2) Your .cbz files will appear here: ${cbzDir}`);
     console.log('3) When you are ready, type "start" and press Enter.');
+    console.log('For more info, read the README: https://github.com/animax888/cbr-to-cbz-comic-converter');
     console.log('');
 
     const rl = require('readline').createInterface({
