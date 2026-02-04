@@ -18,6 +18,10 @@ It works without requiring any dependencies, as it includes the 7z binaries, so 
 - Failed files are moved to `_failed` inside the output folder
 - The app attempts to detect 7z, RAR, ZIP, or TAR content even if the extension is different
 
+## ⚠️Windows Security Notice
+When the `.exe` is not code-signed, Windows may show a SmartScreen warning such as "Unknown publisher" or "Windows protected your PC". This is expected for unsigned apps and does not mean the file is infected.
+This program was created by a non-professional developer and does not include a code-signing certificate (sorry). There is no virus risk; the full source code is open source and can be reviewed by anyone. I did this because I was bored and my comic reader didn’t support CBR; I hope it helps you. 
+
 ## Distribution Layout
 ```
 dist/
