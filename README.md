@@ -1,10 +1,12 @@
-# CBR to CBZ Comic Converter (EXE)
+<img src="media/rtzlogo682.png" alt="Alt text" width="300">
 
-This Windows console app converts `.cbr` (RAR) and `.cbz` (ZIP) files into **uncompressed** `.cbz` files.
+# RtZ Comic Converter
+
+**RtZ Comic Converter** is a Windows console tool that transforms your `.cbr` and `.cbz` files into clean, **uncompressed** `.cbz` archives. Built for collectors who want speed, structure, and a simple workflow.
 It works without requiring any dependencies, as it includes the 7z binaries, so you only need to run the .exe.
 
 ## Quick Start
-1. Run `convert-comics.exe`.
+1. Run `rtz-comic-converter.exe`.
 2. The app creates two folders next to the exe: `CBR` and `CBZ`.
 3. Put your `.cbr` files inside the `CBR` folder.
 4. Type `start` and press Enter.
@@ -18,7 +20,7 @@ It works without requiring any dependencies, as it includes the 7z binaries, so 
 ## Distribution Layout
 ```
 dist/
-  convert-comics.exe
+  rtz-comic-converter.exe
   7z/
     7z.exe
     7z.dll

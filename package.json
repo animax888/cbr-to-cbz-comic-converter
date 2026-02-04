@@ -9,7 +9,7 @@
   "scripts": {
     "build:exe": "pkg index.js --targets node18-win-x64 --output dist/edad-app.exe",
     "convert:comics": "node convert_comics.js",
-    "build:exe:comics": "pkg convert_comics.js --targets node18-win-x64 --output dist/convert-comics.exe && node scripts/copy-distribution.js"
+    "build:exe:comics": "pkg convert_comics.js --targets node18-win-x64 --icon media/rtzlogo256.ico --output dist/rtz-comic-converter.exe && node scripts/copy-distribution.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
