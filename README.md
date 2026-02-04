@@ -7,7 +7,7 @@ It works without requiring any dependencies, as it includes the 7z binaries, so 
 
 ## Installation
 The latest version can be downloaded from the Releases page and is marked as `Latest`:
-`https://github.com/animax888/cbr-to-cbz-comic-converter/releases`
+https://github.com/animax888/cbr-to-cbz-comic-converter/releases
 The program comes in a ZIP file. Just extract it and run the `.exe`.
 
 ## Quick Start
