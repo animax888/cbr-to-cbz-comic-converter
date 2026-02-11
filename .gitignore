@@ -1,5 +1,13 @@
 node_modules/
 dist/
 out/
+build/
+release/
+coverage/
+.cache/
+.parcel-cache/
+.vite/
+.next/
+.npm/
 *.log
 .DS_Store
