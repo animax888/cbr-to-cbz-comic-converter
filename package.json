@@ -1,15 +1,18 @@
 {
   "name": "cbr-to-cbz-comic-converter",
-  "version": "04.02.2026:03",
+  "version": "2026.2.4",
+  "buildVersion": "04.02.2026:03",
   "description": "",
-  "main": "index.js",
+  "main": "electron/main.js",
   "type": "commonjs",
   "license": "MIT",
   "author": "animax888",
   "scripts": {
     "build:exe": "pkg index.js --targets node18-win-x64 --output dist/edad-app.exe",
     "convert:comics": "node convert_comics.js",
-    "build:exe:comics": "pkg convert_comics.js --targets node18-win-x64 --icon media/rtzlogo256.ico --output dist/rtz-comic-converter.exe && node scripts/copy-distribution.js"
+    "dev:ui": "electron .",
+    "build:exe:comics": "pkg convert_comics.js --targets node18-win-x64 --icon media/rtzlogo256.ico --output dist/rtz-comic-converter.exe && node scripts/copy-distribution.js",
+    "build:ui": "electron-builder --win portable"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
@@ -19,6 +22,8 @@
     "yazl": "^3.3.1"
   },
   "devDependencies": {
+    "electron": "^40.3.0",
+    "electron-builder": "^26.7.0",
     "pkg": "^5.8.1",
     "rcedit": "^5.0.2"
   },
@@ -30,5 +35,21 @@
       "licenses/PROJECT_LICENSE.txt",
       "licenses/THIRD_PARTY_NOTICES.txt"
     ]
+  },
+  "build": {
+    "appId": "com.animax888.rtz-comic-converter",
+    "productName": "RtZ Comic Converter",
+    "files": [
+      "electron/**",
+      "convert_comics.js",
+      "tools/**",
+      "licenses/**"
+    ],
+    "asarUnpack": [
+      "tools/**"
+    ],
+    "win": {
+      "target": "portable"
+    }
   }
 }

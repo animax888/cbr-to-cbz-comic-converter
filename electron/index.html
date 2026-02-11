@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RtZ Comic Converter</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>RtZ Comic Converter</h1>
+        <p>Convert comic archives to uncompressed CBZ files.</p>
+      </header>
+
+      <section class="panel">
+        <div class="row">
+          <label>Input Folder</label>
+          <div class="field">
+            <input id="inputDir" type="text" placeholder="Select input folder" readonly />
+            <button id="pickInput">Browse…</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>Output Folder</label>
+          <div class="field">
+            <input id="outputDir" type="text" placeholder="Select output folder" readonly />
+            <button id="pickOutput">Browse…</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>Threads (optional)</label>
+          <div class="field">
+            <input id="threads" type="number" min="1" placeholder="Auto" />
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <button id="startBtn" class="primary">Start Conversion</button>
+        <button id="openOutputBtn" class="secondary hidden">View Output Folder</button>
+        <div class="status">
+          <div id="statusText">Idle</div>
+          <div class="progress">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <div id="progressMeta">0 / 0</div>
+          <div class="failed">
+            <div id="failedHeader">Failed files: 0</div>
+            <div class="failed-note">Some files can fail if they are corrupted, password-protected, or use an unsupported archive format.</div>
+            <ul id="failedList"></ul>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <small>Need help? Read the <a href="https://github.com/animax888/cbr-to-cbz-comic-converter?tab=readme-ov-file#readme-ov-file">README</a> on GitHub.</small>
+      </footer>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

@@ -16,6 +16,10 @@ function isPackaged() {
   return typeof process.pkg !== 'undefined';
 }
 
+function isElectron() {
+  return !!process.versions.electron;
+}
+
 function getBaseDir() {
   return isPackaged() ? path.dirname(process.execPath) : process.cwd();
 }
@@ -36,14 +40,25 @@ async function extractBundledSevenZip(bundledExe) {
 }
 
 async function resolveSevenZipPath() {
-  const candidates = [
+  const candidates = [];
+
+  if (isElectron()) {
+    candidates.push(
+      path.join(process.resourcesPath, 'app.asar.unpacked', 'tools', '7z', '7z.exe'),
+      path.join(process.resourcesPath, 'tools', '7z', '7z.exe')
+    );
+  }
+
+  candidates.push(
     process.env[SEVEN_ZIP_ENV],
     path.join(getBaseDir(), 'tools', '7z', '7z.exe'),
     path.join(getBaseDir(), '7z', '7z.exe'),
     path.join(getBaseDir(), '7z.exe')
-  ].filter(Boolean);
+  );
 
-  for (const candidate of candidates) {
+  const filtered = candidates.filter(Boolean);
+
+  for (const candidate of filtered) {
     if (fs.existsSync(candidate)) return candidate;
   }
 
@@ -121,6 +136,12 @@ const counter = {
     if (type in this) this[type] += 1;
   }
 };
+
+function resetCounter() {
+  counter.processed = 0;
+  counter.converted = 0;
+  counter.failed = 0;
+}
 
 function safePath(p) {
   return path.resolve(String(p));
@@ -289,8 +310,15 @@ async function createUncompressedZipFromDir(sourceDir, destFile) {
   await done;
 }
 
-async function convertToCbz(srcFile, destFile, failedPath) {
+async function convertToCbz(srcFile, destFile, failedPath, onFailure) {
   const tempDir = `${destFile}_temp`;
+  const reportFailure = async () => {
+    await fsp.mkdir(path.dirname(failedPath), { recursive: true });
+    await fsp.copyFile(srcFile, failedPath);
+    if (onFailure) onFailure(srcFile);
+    counter.increment('failed');
+    return false;
+  };
   try {
     await fsp.mkdir(tempDir, { recursive: true });
     const ext = path.extname(srcFile).toLowerCase();
@@ -299,10 +327,7 @@ async function convertToCbz(srcFile, destFile, failedPath) {
         await safeExtractZip(srcFile, tempDir);
       } catch (err) {
         logLine('error', `Error extracting ZIP ${srcFile}: ${err.message}`);
-        await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-        await fsp.copyFile(srcFile, failedPath);
-        counter.increment('failed');
-        return false;
+        return reportFailure();
       }
     } else {
       if (await tryExtractWithSevenZip(srcFile, tempDir)) {
@@ -324,10 +349,7 @@ async function convertToCbz(srcFile, destFile, failedPath) {
               await safeExtractTar(srcFile, tempDir);
             } catch (tarErr) {
               logLine('error', `Failed to process as TAR: ${tarErr.message}`);
-              await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-              await fsp.copyFile(srcFile, failedPath);
-              counter.increment('failed');
-              return false;
+              return reportFailure();
             }
           }
         }
@@ -340,17 +362,11 @@ async function convertToCbz(srcFile, destFile, failedPath) {
       return true;
     } catch (err) {
       logLine('error', `Error creating new ZIP ${destFile}: ${err.message}`);
-      await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-      await fsp.copyFile(srcFile, failedPath);
-      counter.increment('failed');
-      return false;
+      return reportFailure();
     }
   } catch (err) {
     logLine('error', `Unexpected error processing ${srcFile}: ${err.message}`);
-    await fsp.mkdir(path.dirname(failedPath), { recursive: true });
-    await fsp.copyFile(srcFile, failedPath);
-    counter.increment('failed');
-    return false;
+    return reportFailure();
   } finally {
     try {
       await fsp.rm(tempDir, { recursive: true, force: true });
@@ -360,7 +376,7 @@ async function convertToCbz(srcFile, destFile, failedPath) {
   }
 }
 
-async function processFile(srcFile, destFile, failedPath) {
+async function processFile(srcFile, destFile, failedPath, onFailure) {
   counter.increment('processed');
   const ext = path.extname(srcFile).toLowerCase();
 
@@ -368,12 +384,13 @@ async function processFile(srcFile, destFile, failedPath) {
     if (!isValidZip(srcFile)) {
       await fsp.mkdir(path.dirname(failedPath), { recursive: true });
       await fsp.copyFile(srcFile, failedPath);
+      if (onFailure) onFailure(srcFile);
       counter.increment('failed');
       return false;
     }
   }
 
-  return convertToCbz(srcFile, destFile, failedPath);
+  return convertToCbz(srcFile, destFile, failedPath, onFailure);
 }
 
 async function collectFiles(inputDir, outputDir) {
@@ -430,20 +447,29 @@ async function runWithConcurrency(tasks, limit) {
   });
 }
 
-async function processFiles(inputDir, outputDir, maxWorkers) {
+async function processFiles(inputDir, outputDir, maxWorkers, onProgress, onFailure) {
   const filesToProcess = await collectFiles(inputDir, outputDir);
+  const total = filesToProcess.length;
 
   const bar = new cliProgress.SingleBar({
     format: 'Converting files |{bar}| {value}/{total}',
     clearOnComplete: false
   }, cliProgress.Presets.shades_classic);
 
-  bar.start(filesToProcess.length, 0);
+  bar.start(total, 0);
 
   const tasks = filesToProcess.map(({ srcFile, destFile, failedPath }) => {
     return async () => {
-      await processFile(srcFile, destFile, failedPath);
+      await processFile(srcFile, destFile, failedPath, onFailure);
       bar.increment();
+      if (onProgress) {
+        onProgress({
+          processed: counter.processed,
+          converted: counter.converted,
+          failed: counter.failed,
+          total
+        });
+      }
     };
   });
 
@@ -454,6 +480,26 @@ async function processFiles(inputDir, outputDir, maxWorkers) {
 
   logLine('info', `Processing complete: ${counter.processed} files processed`);
   logLine('info', `Converted: ${counter.converted}, Failed: ${counter.failed}`);
+}
+
+async function runConversion({ inputDir, outputDir, threads, onProgress, onFailure } = {}) {
+  if (!inputDir || !outputDir) {
+    throw new Error('Both inputDir and outputDir are required');
+  }
+
+  inputDir = safePath(inputDir);
+  outputDir = safePath(outputDir);
+
+  resetCounter();
+  SEVEN_ZIP_PATH = await resolveSevenZipPath();
+
+  if (SEVEN_ZIP_PATH) {
+    logLine('info', `Using 7-Zip at ${SEVEN_ZIP_PATH}`);
+  } else {
+    logLine('info', '7-Zip not found. Falling back to pure JS RAR handling.');
+  }
+
+  await processFiles(inputDir, outputDir, threads || undefined, onProgress, onFailure);
 }
 
 async function main() {
@@ -511,22 +557,21 @@ async function main() {
     rl.close();
   }
 
-  inputDir = safePath(inputDir);
-  outputDir = safePath(outputDir);
-
-  SEVEN_ZIP_PATH = await resolveSevenZipPath();
-
-  if (SEVEN_ZIP_PATH) {
-    logLine('info', `Using 7-Zip at ${SEVEN_ZIP_PATH}`);
-  } else {
-    logLine('info', '7-Zip not found. Falling back to pure JS RAR handling.');
-  }
-
-  await processFiles(inputDir, outputDir, parsed.threads || undefined);
+  await runConversion({
+    inputDir,
+    outputDir,
+    threads: parsed.threads || undefined
+  });
   await pauseOnExit();
 }
 
-main().catch((err) => {
-  logLine('error', `Fatal error: ${err.message}`);
-  pauseOnExit().finally(() => process.exit(1));
-});
+if (require.main === module) {
+  main().catch((err) => {
+    logLine('error', `Fatal error: ${err.message}`);
+    pauseOnExit().finally(() => process.exit(1));
+  });
+}
+
+module.exports = {
+  runConversion
+};
